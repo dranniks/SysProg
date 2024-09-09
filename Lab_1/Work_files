@@ -1,0 +1,30 @@
+mkdir -p Work/"Лабораторная работа №1!" Work/ТАП
+
+chmod 771 Work/"Лабораторная работа №1!"
+chmod 200 Work/"ТАП"
+
+touch Work/"Text @1" Work/"Text \$2" Work/"Text #3"
+
+echo -e "Птица говорун отличается умом и сообразительностью! \nОтличается умом, отличается сообразительностью..." > Work/"Text @1"
+
+cp Work/"Text @1" Work/"Text \$2"
+
+mv Work/"Text \$2" Work/"Лабораторная работа №1!"/
+chmod 700 Work/ТАП
+cp Work/"Text @1" Work/ТАП/
+
+gzip Work/"Text @1" Work/"Text #3"
+tar -cf MyAchiv.tar.gz Work/*.gz   
+
+gzip -d Work/"Text @1.gz" Work/"Text #3.gz"
+head -n 1 Work/"Text @1" >> Work/"Text #3"
+echo "Будь осторожен! Преступник вооружен!" >> Work/"Text #3"
+
+tac Work/"Text @1" > Work/ТАП/Result_one
+
+mv Work/ТАП/Result_one Work/ТАП/Result_two
+   
+cat Work/ТАП/T* > Work/"Лабораторная работа №1!"/Result_3
+
+uname -a >> Work/"Лабораторная работа №1!"/Result_3
+date >> Work/"Лабораторная работа №1!"/Result_3
