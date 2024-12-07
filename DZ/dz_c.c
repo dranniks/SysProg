@@ -1,28 +1,49 @@
 #include<stdio.h>
 
-unsigned long * new_queue();
-unsigned long * del_queue();
-unsigned long * q_push(int n);
-unsigned long * q_pop();
+unsigned long * qNew();
+unsigned long * qDelete();
+unsigned long * qPush(int number);
+unsigned long * qPop();
+unsigned long * qFillRandom(int lenght);
+unsigned long * qCountEndingWithOne();
+unsigned long * qCountEvenNumbers();
+unsigned long * qCountPrimeNumbers();
 
 int main(){
-    unsigned long *p;
-    p = new_queue();
-    q_push(1);
-    printf("%ld\n",q_pop());
+    unsigned long * q;
+    q = qNew();
+    qPush(1);
+    qPush(11);
+    qPush(17);
+    qPush(38);
+    qPush(46);
+    qPush(115);
+    qPush(899);
+    qPush(0);
 
-    q_push(2);
-    q_push(3);
-    printf("%ld\n",q_pop());
-    printf("%ld\n",q_pop());
-    q_push(2);
-    q_push(3);
-    del_queue();
-    q_push(4);
-    q_push(5);
+    printf("%s", "Количество простых чисел: ");
+    printf("%ld\n",qCountPrimeNumbers());                       // 1, 11, 17
+    printf("%s", "Количество чисел, оканчивающихся на '1': ");
+    printf("%ld\n",qCountEndingWithOne());                      // 1, 11
+    printf("%s", "Количество четных чисел: ");
+    printf("%ld\n",qCountEvenNumbers());                        // 38, 46, 0
+    printf("%s\n", "Значения очереди: ");
+    printf("%ld\n",qPop());
+    printf("%ld\n",qPop());
+    printf("%ld\n",qPop());
+    printf("%ld\n",qPop());
+    printf("%ld\n",qPop());
+    printf("%ld\n",qPop());
+    printf("%ld\n",qPop());
+    printf("%ld\n",qPop());
     
-    q_push(9);q_push(9);q_push(9);
-    printf("%ld\n",q_pop());
-    printf("%ld\n",q_pop());
+    printf("%s\n", "Пример заполнения случайными значениями: ");
+    qFillRandom(5);
+    printf("%ld\n",qPop());
+    printf("%ld\n",qPop());
+    printf("%ld\n",qPop());
+    printf("%ld\n",qPop());
+    printf("%ld\n",qPop());
+    qDelete();
     return 0;
 }
