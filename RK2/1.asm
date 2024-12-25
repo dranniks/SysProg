@@ -1,144 +1,183 @@
 format ELF64
 
-	public _start
+public _start
+public gen_random
 
-	extrn initscr
-	extrn start_color
-	extrn init_pair
-	extrn getmaxx
-	extrn getmaxy
-	extrn raw
-	extrn noecho
-	extrn keypad
-	extrn stdscr
-	extrn move
-	extrn getch
-	extrn clear
-	extrn addch
-	extrn refresh
-	extrn endwin
-	extrn exit
-	extrn color_pair
-	extrn insch
-	extrn cbreak
-	extrn timeout
-	extrn mydelay
-	extrn setrnd
-	extrn get_random
+extrn initscr
+extrn start_color
+extrn init_pair
+extrn getmaxx
+extrn getmaxy
+extrn raw
+extrn noecho
+extrn keypad
+extrn stdscr
+extrn move
+extrn getch
+extrn addch
+extrn refresh
+extrn endwin
+extrn timeout
+extrn printw
+extrn mvaddch
+extrn erase
+extrn curs_set
+extrn usleep
 
-
-	section '.bss' writable
-	x rb 0
-    y rb 0
-	xmax dq 1
+section '.bss' writable
+    xmax dq 1
 	ymax dq 1
-	rand_x dq 1
-	rand_y dq 1
 	palette dq 1
-	count dq 1
+    
+	; для gen_random
+	f db "/dev/random", 0
+	number rq 1
+  	place rb 100
 
-	;section '.data' writable
-
-
-	section '.text' executable
-	
+section '.text' executable
 _start:
-	;; Инициализация
-	call initscr
 
-	;; Размеры экрана
-	xor rdi, rdi
+    call initscr
+    xor rdi, rdi
 	mov rdi, [stdscr]
 	call getmaxx
+    dec rax
 	mov [xmax], rax
 	call getmaxy
+    dec rax
 	mov [ymax], rax
 
-	call start_color
+    call start_color
+	; синенький
+    mov rdi, 1
+    mov rsi, 4
+    mov rdx, 4
+    call init_pair
+	; красненький
+    mov rdi, 2
+    mov rsi, 5
+    mov rdx, 1
+    call init_pair
 
-	;; Синий цвет
-	mov rdx, 0x4
-	mov rsi,0x0
-	mov rdi, 0x1
-	call init_pair
-
-	;; Черный цвет
-	mov rdx, 0x0
-	mov rsi,0xf
-	mov rdi, 0x2
-	call init_pair
-
-	call refresh
+    call refresh
 	call noecho
-	call cbreak
-	call setrnd
-
-	;; Начальная инициализация палитры
-	mov rax, ' '
-	or rax, 0x100
-	mov [palette], rax
-	mov [count], 0
-    xor r13, r13
-    xor r14, r14
-	;; Главный цикл программы
-mloop:
-
-    
-    ;; Выбираем случайную позицию по осям x, y
-	call get_random
-	add r13, rax
-
-    mov rax, [xmax]
-    mov rcx, 2
-    xor rdx, rdx
-    div rcx
-    add rax, r13
-
-	mov [rand_x], rax
-    
-	call get_random
-	add r14, rax
-
-    mov rax, [ymax]
-    mov rcx, 2
-    xor rdx, rdx
-    div rcx
-    add rax, r14
-
-	mov [rand_y], rax
 	
+    xor rax, rax
+    mov rax, ' '
+    or rax, 0x100
+    mov [palette], rax
 
+    xor r13, r13		; x 
+    xor r14, r14		; y
 
-	;; Перемещаем курсор в случайную позицию
-	mov rdi, [rand_y]
-	mov rsi, [rand_x]
-	call move
+	mov r13, 10			; начальные координаты, 
+	mov r14, 10			; просто чтобы сразу из угла не стартовал
 
-	;; Печатаем случайный символ в палитре
-	mov  rdi, [palette]
-	call addch
-	;; 	call insch
-	
-	;; Задержка
-	mov rdi, 100000
-	call mydelay
+    .loop:
+        
+        mov rdi, r14
+        mov rsi, r13
+        push r13
+        push r14
+		; рисуем
+        mov rdx, [palette]
+        call mvaddch
+        call refresh
+		; ловим нажатие кьюшки
+        mov rdi, 10
+        call timeout
+        call getch
+        cmp rax, 'q'
+        je .end
 
-	;; Обновляем экран и количество выведенных знакомест в заданной палитре
-	call refresh
-		 
-    ;;Задаем таймаут для getch
-	mov rdi, 1
-	call timeout
-	call getch
+        pop r14
+        pop r13
+        ; генерирум {-1, 0, 1} и добавляем к текущей координате
+        call gen_random
+        add r13, rdx
+        xor rdx, rdx
+        call gen_random
+        add r14, rdx
+
+        xor rcx, rcx
+        cmp r13, 0
+        jnl @f   ; если x >= 0, переходим дальше
+        inc r13
+        inc rcx
+        @@:
+        cmp r13, [xmax]
+        jle @f   ; если x <= xmax, переходим дальше
+        dec r13
+        inc rcx
+        @@:
+        cmp r14, 0
+        jnl @f  ; если y >= 0, переходим дальше
+        inc r14
+        inc rcx
+        @@:
+        cmp r14, [ymax]
+        jle @f  ; если y <= ymax, переходим
+        dec r14
+        inc rcx
+
+        @@:
+        cmp rcx, 0
+        je .delay
+        mov rax, [palette]
+        and rax, 0x100
+        cmp rax, 0    ; Проверяем цвет
+        jne .red
+        mov rax, [palette]
+        and rax, 0xff
+        or rax, 0x100
+        jmp @f ; дальше
+        .red:
+        mov rax, [palette]
+        and rax, 0xff
+        or rax, 0x200
+        @@:
+        mov [palette], rax
+
+        .delay:		; задержка в развитии
+        push r14
+        push r13
+        mov rdi, 100000
+        call usleep
+        pop r13
+        pop r14
+        jmp .loop
+
+    .end:
+    mov rdi, 1
+    call endwin
+    mov rax, 60
+    syscall
+
+gen_random:
+    mov rdi, f
+    mov rax, 2 
+    mov rsi, 0o
+    syscall 
+    mov r8, rax
+
+    mov rax, 0 ;
+    mov rdi, r8
+    mov rsi, number
+    mov rdx, 1
+    syscall
     
-    ;;Анализируем нажатую клавишу
-	cmp rax, 'q'
-	je next
-	jmp mloop
-next:	
-	call endwin
-	call exit
-
-;;Анализируем количество выведенных знакомест в заданной палитре, меняем палитру, если количество больше 10000
-
-;;Выбираем случайную цифру
+    mov rax, [number]
+    mov rsi, place
+    
+    push rax
+    mov rax, 3
+    mov rdi, r8
+    syscall
+    pop rax
+	;xor rax, rax
+    xor rbx, rbx
+    xor rdx, rdx
+	mov rbx, 3  ; делаем дипазон {-1, 0, 1}
+    div rbx
+    sub rdx, 1
+    ret

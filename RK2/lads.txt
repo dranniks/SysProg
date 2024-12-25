@@ -1,0 +1,357 @@
+format ELF64
+
+	public _start
+
+	extrn initscr
+	extrn start_color
+	extrn init_pair
+	extrn getmaxx
+	extrn getmaxy
+	extrn raw
+	extrn noecho
+	extrn keypad
+	extrn stdscr
+	extrn move
+	extrn getch
+	extrn clear
+	extrn addch
+	extrn refresh
+	extrn endwin
+	extrn exit
+	extrn color_pair
+	extrn insch
+	extrn cbreak
+	extrn timeout
+	extrn mydelay
+	extrn setrnd
+	extrn get_random
+	extrn random_color
+
+
+	section '.bss' writable
+	x rb 0
+    y rb 0
+	xmax dq 1
+	ymax dq 1
+	rand_x dq 1
+	rand_y dq 1
+	palette dq 1
+	count dq 1
+
+	;section '.data' writable
+
+
+	section '.text' executable
+	
+_start:
+	;; Инициализация
+	call initscr
+
+	;; Размеры экрана
+	xor rdi, rdi
+	mov rdi, [stdscr]
+	call getmaxx
+	mov [xmax], rax
+	call getmaxy
+	mov [ymax], rax
+
+	call start_color
+
+	;; Синий цвет
+	mov rdx, 0x1
+	mov rsi, 0x0
+	mov rdi, 0x1
+	call init_pair
+
+	;; Черный цвет
+	;mov rdx, 0x0
+	;mov rsi,0xf
+	;mov rdi, 0x2
+	;call init_pair
+
+	call refresh
+	call noecho
+	call cbreak
+	call setrnd
+
+	;; Начальная инициализация палитры
+	mov rax, ' '
+	or rax, 0x100
+	mov [palette], rax
+	mov [count], 0
+    xor r13, r13
+    xor r14, r14
+	;; Главный цикл программы
+mloop:
+
+    
+    ;; Выбираем случайную позицию по осям x, y
+	call get_random
+	add r13, rax
+	push r13
+    mov rax, [xmax]
+    mov rcx, 2
+    xor rdx, rdx
+    div rcx
+    add rax, r13
+
+	mov [rand_x], rax
+    
+	call get_random
+	add r14, rax
+	push r14
+    mov rax, [ymax]
+    mov rcx, 2
+    xor rdx, rdx
+    div rcx
+    add rax, r14
+
+	mov [rand_y], rax
+	
+
+
+	;; Перемещаем курсор в случайную позицию
+	mov rdi, [rand_y]
+	mov rsi, [rand_x]
+	call move
+
+	;; Печатаем случайный символ в палитре
+	call change_color
+	call addch
+	;; 	call insch
+	
+	;; Задержка
+	mov rdi, 100000
+	call mydelay
+
+	;; Обновляем экран и количество выведенных знакомест в заданной палитре
+	call refresh
+		 
+    ;;Задаем таймаут для getch
+	mov rdi, 1
+	call timeout
+	call getch
+    
+    ;;Анализируем нажатую клавишу
+	cmp rax, 'q'
+	je next
+	jmp mloop
+next:	
+	call endwin
+	call exit
+
+;;Анализируем количество выведенных знакомест в заданной палитре, меняем палитру, если количество больше 10000
+
+;;Выбираем случайную цифру
+
+change_color:
+	cmp r14, [xmax]
+	cmp r13, 0
+	cmp r13, [ymax]
+	cmp r14, 0
+
+	mov  rdi, [palette]
+
+	je skip
+
+	call random_color
+	mov rdx, rax
+	mov rsi, 0
+	mov rdi, 0
+	call init_pair
+	mov  rdi, [palette]
+
+	skip:
+	ret
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+format ELF64
+
+public _start
+
+extrn initscr
+extrn start_color
+extrn init_pair
+extrn getmaxx
+extrn getmaxy
+extrn raw
+extrn noecho
+extrn keypad
+extrn stdscr
+extrn move
+extrn getch
+extrn addch
+extrn refresh
+extrn endwin
+extrn timeout
+extrn usleep
+extrn printw
+extrn mvaddch
+extrn erase
+extrn curs_set
+
+extrn get_random
+extrn setrnd
+
+
+section '.bss' writable
+    xmax dq 1
+	ymax dq 1
+	palette dq 1
+    delay dq ?
+    buffer db ?
+    f db "/dev/random", 0
+    rand dq ?
+
+section '.text' executable
+_start:
+
+    call initscr
+    xor rdi, rdi
+	mov rdi, [stdscr]
+	call getmaxx
+    dec rax
+	mov [xmax], rax
+	call getmaxy
+    dec rax
+	mov [ymax], rax
+
+
+    call start_color
+
+    mov rdi, 1
+    mov rsi, 4
+    mov rdx, 4
+    call init_pair
+
+    mov rdi, 2
+    mov rsi, 5
+    mov rdx, 1
+    call init_pair
+
+    call refresh
+	call noecho
+    call raw
+
+    xor rax, rax
+    mov rax, ' '
+    or rax, 0x100
+    mov [palette], rax
+
+    mov rax, 2
+    mov rdi, f
+    mov rsi, 0
+    syscall
+    mov [rand], rax
+	call setrnd
+    xor r9, r9
+    xor r10, r10
+
+    .loop:
+        
+        mov rdi, r10
+        mov rsi, r9
+        push r9
+        push r10
+        mov rdx, [palette]
+        call mvaddch
+        call refresh
+
+        mov rdi, 1
+        call timeout
+        call getch
+        cmp rax, 'q'
+        je .end
+        
+        mov rax, 0 
+        mov rdi, [rand]
+        mov rsi, buffer
+        mov rdx, 1
+        syscall
+
+        pop r10
+        pop r9
+        
+		call get_random
+        add r9, rax
+        call get_random
+        add r10, rax
+
+        xor rcx, rcx
+        cmp r9, 0
+        jnl @f
+        inc r9
+        inc rcx
+
+        @@:
+        cmp r9, [xmax]
+        jle @f
+        dec r9
+        inc rcx
+
+        @@:
+        cmp r10, 0
+        jnl @f
+        inc r10
+        inc rcx
+
+        @@:
+        cmp r10, [ymax]
+        jle @f
+        dec r10
+        inc rcx
+
+        @@:
+        cmp rcx, 0
+        je .sleep
+        mov rax, [palette]
+        and rax, 0x100
+        cmp rax, 0
+        jne .mag
+        mov rax, [palette]
+        and rax, 0xff
+        or rax, 0x100
+        jmp @f
+        .mag:
+        mov rax, [palette]
+        and rax, 0xff
+        or rax, 0x200
+        @@:
+        mov [palette], rax
+
+        .sleep:
+        push r10
+        push r9
+        mov rdi, 100000
+        call usleep
+        ;call erase
+        pop r9
+        pop r10
+        
+        jmp .loop
+
+    .end:
+    mov rdi, 1
+    call curs_set
+    call endwin
+    mov rax, 60
+    syscall
