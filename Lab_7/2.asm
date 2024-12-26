@@ -4,7 +4,7 @@ include 'func.asm'
 
 public _start
 
-arrlen = 11
+arrlen = 10
 flags = 2147585792
 
 section '.bss' writable
